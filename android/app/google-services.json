@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "646419101116",
+    "firebase_url": "https://brainwave-279f0-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "brainwave-279f0",
+    "storage_bucket": "brainwave-279f0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:646419101116:android:9a699f8c123b5b97f027b9",
+        "android_client_info": {
+          "package_name": "com.example.brainwave"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCblpXpTTC4pkvKLvmpdsHNoc2t55A-0AM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
