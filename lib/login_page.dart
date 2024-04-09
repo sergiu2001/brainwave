@@ -1,3 +1,5 @@
+import 'package:brainwave/register_page.dart';
+import 'package:brainwave/welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -11,30 +13,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   String _email = "";
   String _password = "";
-  void _handleLogin() async {
-    try {
-      UserCredential userCredential =
-          await _auth.signInWithEmailAndPassword(
-        email: _email,
-        password: _password,
-      );
-      print('User logged in: ${userCredential.user!.email}');
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        print('No user found for that email.');
-      } else if (e.code == 'wrong-password') {
-        print('Wrong password provided for that user.');
-      }
-    } catch (e) {
-      print(e);
-    }
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,13 +74,39 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      _handleLogin();
+                      try {
+                        UserCredential userCredential =
+                            await _auth.signInWithEmailAndPassword(
+                          email: _email,
+                          password: _password,
+                        );
+                            MaterialPageRoute(builder: (context) => const WelcomePage());
+                        print('User logged in: ${userCredential.user!.email}');
+                      } on FirebaseAuthException catch (e) {
+                        if (e.code == 'user-not-found') {
+                          _emailController.clear();
+                        } else if (e.code == 'wrong-password') {
+                          _passwordController.clear();
+                        }
+                      } catch (e) {
+                        print(e);
+                      }
                     }
                   },
                   child: const Text('Login'),
-                )
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const RegisterPage()),
+                    );
+                  },
+                  child: const Text("Don't have an account? Create one here."),
+                ),
               ],
             ),
           ),

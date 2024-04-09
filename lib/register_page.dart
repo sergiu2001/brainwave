@@ -1,3 +1,4 @@
+import 'package:brainwave/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -23,12 +24,14 @@ class _RegisterPageState extends State<RegisterPage> {
         email: _email,
         password: _password,
       );
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const LoginPage()));
       print('User registered: ${userCredential.user!.email}');
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'weak-password') {
-        print('The password provided is too weak.');
-      } else if (e.code == 'email-already-in-use') {
-        print('The account already exists for that email.');
+      if (e.code == 'user-not-found') {
+        _emailController.clear();
+      } else if (e.code == 'wrong-password') {
+        _passwordController.clear();
       }
     } catch (e) {
       print(e);
@@ -90,9 +93,25 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      _handleRegister();
+                      try {
+                        UserCredential userCredential =
+                            await _auth.createUserWithEmailAndPassword(
+                          email: _email,
+                          password: _password,
+                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                        print('User registered: ${userCredential.user!.email}');
+                      } on FirebaseAuthException catch (e) {
+                        if (e.code == 'user-not-found') {
+                          _emailController.clear();
+                        } else if (e.code == 'wrong-password') {
+                          _passwordController.clear();
+                        }
+                      } catch (e) {
+                        print(e);
+                      }
                     }
                   },
                   child: const Text('Register'),

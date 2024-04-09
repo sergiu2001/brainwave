@@ -20,16 +20,16 @@ class _WelcomePageState extends State<WelcomePage> {
       ),
       body: Center(
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text("Logged in as: $_email"),
-              SizedBox(height: 50),
+              const SizedBox(height: 50),
               ElevatedButton(
                   onPressed: () {
                     _auth.signOut();
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
                   },
                   child: const Text('Logout'),
                 )
