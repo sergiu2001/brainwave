@@ -18,7 +18,7 @@ class _LoginPageState extends State<LoginPage> {
 
   String _email = "";
   String _password = "";
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,16 +82,11 @@ class _LoginPageState extends State<LoginPage> {
                           email: _email,
                           password: _password,
                         );
-                            MaterialPageRoute(builder: (context) => const WelcomePage());
+                        MaterialPageRoute(
+                            builder: (context) => const WelcomePage());
                         print('User logged in: ${userCredential.user!.email}');
                       } on FirebaseAuthException catch (e) {
-                        if (e.code == 'user-not-found') {
-                          _emailController.clear();
-                        } else if (e.code == 'wrong-password') {
-                          _passwordController.clear();
-                        }
-                      } catch (e) {
-                        print(e);
+                        print(e.code);
                       }
                     }
                   },

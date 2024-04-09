@@ -101,16 +101,13 @@ class _RegisterPageState extends State<RegisterPage> {
                           email: _email,
                           password: _password,
                         );
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginPage()));
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginPage()));
                         print('User registered: ${userCredential.user!.email}');
                       } on FirebaseAuthException catch (e) {
-                        if (e.code == 'user-not-found') {
-                          _emailController.clear();
-                        } else if (e.code == 'wrong-password') {
-                          _passwordController.clear();
-                        }
-                      } catch (e) {
-                        print(e);
+                        print(e.code);
                       }
                     }
                   },
