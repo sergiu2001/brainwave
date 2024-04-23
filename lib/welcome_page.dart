@@ -1,3 +1,5 @@
+import 'package:app_usage/app_usage.dart';
+import 'package:brainwave/app_usage.dart';
 import 'package:brainwave/login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -31,8 +33,17 @@ class _WelcomePageState extends State<WelcomePage> {
                   MaterialPageRoute(builder: (context) => const LoginPage()));
             },
             child: const Text('Logout'),
-          )
+          ),
+          const SizedBox(height: 50),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const AppUsagePage()));
+            },
+            child: const Text('Go to App Usage Page'),
+          ),
         ]),
+
       )),
     );
   }

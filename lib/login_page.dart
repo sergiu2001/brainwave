@@ -82,8 +82,10 @@ class _LoginPageState extends State<LoginPage> {
                           email: _email,
                           password: _password,
                         );
-                        MaterialPageRoute(
-                            builder: (context) => const WelcomePage());
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const WelcomePage()));
                         print('User logged in: ${userCredential.user!.email}');
                       } on FirebaseAuthException catch (e) {
                         print(e.code);

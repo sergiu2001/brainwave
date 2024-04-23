@@ -1,3 +1,5 @@
+import 'package:app_usage/app_usage.dart';
+import 'package:brainwave/app_usage.dart';
 import 'package:brainwave/login_page.dart';
 import 'package:brainwave/register_page.dart';
 import 'package:brainwave/firebase_options.dart';
@@ -26,6 +28,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
         '/welcome': (context) => const WelcomePage(),
+        '/app_usage': (context) => const AppUsagePage(),
       },
     );
   }
