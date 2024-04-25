@@ -1,4 +1,3 @@
-import 'package:app_usage/app_usage.dart';
 import 'package:brainwave/app_usage.dart';
 import 'package:brainwave/login_page.dart';
 import 'package:brainwave/register_page.dart';

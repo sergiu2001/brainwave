@@ -19,7 +19,7 @@ class _AppUsagePage extends State<AppUsagePage> {
   void getUsageStats() async {
     try {
       DateTime endDate = DateTime.now();
-      DateTime startDate = endDate.subtract(Duration(hours: 1));
+      DateTime startDate = endDate.subtract(const Duration(hours: 1));
       List<AppUsageInfo> infoList =
           await AppUsage().getAppUsage(startDate, endDate);
       setState(() => _infos = infoList);
@@ -48,7 +48,7 @@ class _AppUsagePage extends State<AppUsagePage> {
                   trailing: Text(_infos[index].usage.toString()));
             }),
         floatingActionButton: FloatingActionButton(
-            onPressed: getUsageStats, child: Icon(Icons.file_download)),
+            onPressed: getUsageStats, child: const Icon(Icons.file_download)),
       ),
     );
   }

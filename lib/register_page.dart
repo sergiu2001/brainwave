@@ -12,32 +12,12 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  TextEditingController _emailController = TextEditingController();
-  TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   String _email = "";
   String _password = "";
-  void _handleRegister() async {
-    try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: _email,
-        password: _password,
-      );
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const LoginPage()));
-      print('User registered: ${userCredential.user!.email}');
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        _emailController.clear();
-      } else if (e.code == 'wrong-password') {
-        _passwordController.clear();
-      }
-    } catch (e) {
-      print(e);
-    }
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -101,7 +81,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           email: _email,
                           password: _password,
                         );
-                        Navigator.push(
+                        Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => const LoginPage()));

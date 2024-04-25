@@ -82,7 +82,7 @@ class _LoginPageState extends State<LoginPage> {
                           email: _email,
                           password: _password,
                         );
-                        Navigator.push(
+                        Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                                 builder: (context) => const WelcomePage()));
