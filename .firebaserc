@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "brainwave-279f0"
+  },
+  "targets": {},
+  "etags": {
+    "brainwave-279f0": {
+      "extensionInstances": {}
+    }
+  },
+  "dataconnectEmulatorConfig": {}
+}

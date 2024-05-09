@@ -1,7 +1,6 @@
 import 'package:brainwave/register_page.dart';
-import 'package:brainwave/welcome_page.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,7 +10,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Auth _auth = Auth();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -74,29 +73,17 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      try {
-                        UserCredential userCredential =
-                            await _auth.signInWithEmailAndPassword(
-                          email: _email,
-                          password: _password,
-                        );
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const WelcomePage()));
-                        print('User logged in: ${userCredential.user!.email}');
-                      } on FirebaseAuthException catch (e) {
-                        print(e.code);
-                      }
+                      _auth.signInWithEmailAndPassword(
+                          _email, _password, context);
                     }
                   },
                   child: const Text('Login'),
                 ),
                 TextButton(
                   onPressed: () {
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                           builder: (context) => const RegisterPage()),

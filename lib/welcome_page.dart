@@ -1,7 +1,6 @@
 import 'package:brainwave/app_usage.dart';
-import 'package:brainwave/login_page.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'auth.dart';
 
 class WelcomePage extends StatefulWidget {
   const WelcomePage({super.key});
@@ -11,10 +10,11 @@ class WelcomePage extends StatefulWidget {
 }
 
 class _WelcomePageState extends State<WelcomePage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Auth _auth = Auth();
+
   @override
   Widget build(BuildContext context) {
-    String? email = _auth.currentUser!.email;
+    String? email = _auth.currentUser!.email ?? "No email";
     return Scaffold(
       appBar: AppBar(
         title: const Text('Welcome'),
@@ -27,11 +27,7 @@ class _WelcomePageState extends State<WelcomePage> {
           const SizedBox(height: 50),
           ElevatedButton(
             onPressed: () {
-              _auth.signOut();
-              Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const WelcomePage()));
+              _auth.signOut(context);
             },
             child: const Text('Logout'),
           ),

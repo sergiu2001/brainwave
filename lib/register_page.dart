@@ -1,6 +1,5 @@
-import 'package:brainwave/login_page.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'auth.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -10,14 +9,14 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Auth _auth = Auth();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   String _email = "";
   String _password = "";
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -73,22 +72,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () async {
+                  onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      try {
-                        UserCredential userCredential =
-                            await _auth.createUserWithEmailAndPassword(
-                          email: _email,
-                          password: _password,
-                        );
-                        Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const LoginPage()));
-                        print('User registered: ${userCredential.user!.email}');
-                      } on FirebaseAuthException catch (e) {
-                        print(e.code);
-                      }
+                          _auth.registerWithEmailAndPassword(
+                          _email, _password, context);
                     }
                   },
                   child: const Text('Register'),
