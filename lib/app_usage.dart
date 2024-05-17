@@ -1,7 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:app_usage/app_usage.dart';
 import 'package:device_apps/device_apps.dart';
+import 'auth.dart';
 
 class AppUsagePage extends StatefulWidget {
   const AppUsagePage({super.key});
@@ -12,26 +12,30 @@ class AppUsagePage extends StatefulWidget {
 
 class _AppUsagePage extends State<AppUsagePage> {
   List<AppUsageInfo> _infos = [];
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final Auth _auth = Auth();
 
   @override
   void initState() {
     super.initState();
   }
+
   void getUsageStats() async {
     try {
       DateTime endDate = DateTime.now();
-      DateTime startDate = endDate.subtract(Duration(hours: endDate.hour, minutes: endDate.minute, seconds: endDate.second, milliseconds: endDate.millisecond, microseconds: endDate.microsecond));
+      DateTime startDate = endDate.subtract(Duration(
+          hours: endDate.hour,
+          minutes: endDate.minute,
+          seconds: endDate.second,
+          milliseconds: endDate.millisecond,
+          microseconds: endDate.microsecond));
       print(startDate);
       print(endDate);
       List<AppUsageInfo> infoList =
           await AppUsage().getAppUsage(startDate, endDate);
       setState(() => _infos = infoList);
+      
+      await _auth.sendAppUsage(infoList);
 
-      for (var info in infoList) {
-        print(info.toString());
-        print(await DeviceApps.getApp(info.packageName));
-      }
     } on AppUsageException catch (exception) {
       print(exception);
     }
@@ -55,7 +59,8 @@ class _AppUsagePage extends State<AppUsagePage> {
                   leading: Text(_infos[index].packageName),
                   title: FittedBox(
                     fit: BoxFit.fitWidth,
-                    child: Text('${_infos[index].usage.toString()} | ${_infos[index].startDate} | ${_infos[index].endDate}'),
+                    child: Text(
+                        '${_infos[index].usage.toString()} | ${_infos[index].startDate} | ${_infos[index].endDate}'),
                   ),
                 );
               },
