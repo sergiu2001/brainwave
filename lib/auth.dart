@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:app_usage/app_usage.dart';
 import 'package:brainwave/login_page.dart';
 import 'package:brainwave/welcome_page.dart';
@@ -98,6 +100,23 @@ class Auth {
       print(e.code);
       print(e.message);
       print(e.details);
+    }
+  }
+
+  Future<List<dynamic>> getAppUsage() async {
+    try {
+      HttpsCallable callable =
+          FirebaseFunctions.instance.httpsCallable("getAppUsage");
+      final results = await callable.call({
+        "uid": _auth.currentUser!.uid,
+      });
+      return results.data;
+    } on FirebaseFunctionsException catch (e) {
+      print(e);
+      print(e.code);
+      print(e.message);
+      print(e.details);
+      return [];
     }
   }
 }

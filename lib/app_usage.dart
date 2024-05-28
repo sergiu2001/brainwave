@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:app_usage/app_usage.dart';
 import 'package:device_apps/device_apps.dart';
@@ -11,15 +14,27 @@ class AppUsagePage extends StatefulWidget {
 }
 
 class _AppUsagePage extends State<AppUsagePage> {
-  List<AppUsageInfo> _infos = [];
+  List<dynamic> _infos = [];
   final Auth _auth = Auth();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      getUsageStats();
+    });
   }
 
   void getUsageStats() async {
+    List<dynamic> apps = await _auth.getAppUsage();
+    for (var app in apps) {
+      ApplicationWithIcon appIcon = await DeviceApps.getApp(app['appPackageName'], true) as ApplicationWithIcon;
+      app['appIcon'] = appIcon.icon;
+    }
+    setState(() => _infos = apps);
+  }
+
+  void sendAppUsage() async {
     try {
       DateTime endDate = DateTime.now();
       DateTime startDate = endDate.subtract(Duration(
@@ -32,13 +47,16 @@ class _AppUsagePage extends State<AppUsagePage> {
       print(endDate);
       List<AppUsageInfo> infoList =
           await AppUsage().getAppUsage(startDate, endDate);
-      setState(() => _infos = infoList);
-      
-      await _auth.sendAppUsage(infoList);
 
+      await _auth.sendAppUsage(infoList);
     } on AppUsageException catch (exception) {
       print(exception);
     }
+  }
+
+  Future<void> refreshPage() async {
+    getUsageStats();
+    await Future.delayed(Duration(seconds: 1));
   }
 
   @override
@@ -49,26 +67,31 @@ class _AppUsagePage extends State<AppUsagePage> {
           title: const Text('App Usage Example'),
           backgroundColor: Colors.green,
         ),
-        body: SingleChildScrollView(
-          child: SizedBox(
-            height: MediaQuery.of(context).size.height,
-            child: ListView.builder(
-              itemCount: _infos.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  leading: Text(_infos[index].packageName),
-                  title: FittedBox(
-                    fit: BoxFit.fitWidth,
-                    child: Text(
-                        '${_infos[index].usage.toString()} | ${_infos[index].startDate} | ${_infos[index].endDate}'),
-                  ),
-                );
-              },
-            ),
+        body: RefreshIndicator(
+            onRefresh: refreshPage,
+          child: ListView.builder(
+            physics: AlwaysScrollableScrollPhysics(),
+            itemCount: _infos.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                leading:
+                    Image.memory(Uint8List.fromList(_infos[index]['appIcon'])),
+                title: Text(_infos[index]['appName']),
+                subtitle: Text(_infos[index]['appType']),
+                trailing: Text(_infos[index]['appUsage']),
+              );
+            },
           ),
         ),
-        floatingActionButton: FloatingActionButton(
-            onPressed: getUsageStats, child: const Icon(Icons.file_download)),
+        floatingActionButton: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              onPressed: sendAppUsage,
+              child: const Icon(Icons.file_upload),
+            ),
+          ],
+        ),
       ),
     );
   }

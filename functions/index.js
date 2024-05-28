@@ -73,6 +73,20 @@ exports.sendAppUsage = functions.https.onCall(async (data, context) => {
     console.log(appList);
     console.log(userRef.path);
         appList.forEach((app) => {
-            userRef.collection("apps").doc(app[1]).set({appName: app[0], appType: app[2], appUsage: app[3]}, {merge: true});
+            userRef.collection("apps").doc(app[1]).set({appName: app[0], appPackageName: app[1], appType: app[2], appUsage: app[3]}, {merge: true});
         });
+});
+
+exports.getAppUsage = functions.https.onCall(async (data, context) => {
+    const userUid = data.uid;
+    const appList = data.appList;
+    const db = getFirestore();
+    const userRef = db.collection("users").doc(userUid);
+
+    const appUsage = [];
+    const appUsageRef = await userRef.collection("apps").get();
+    appUsageRef.forEach((doc) => {
+        appUsage.push(doc.data());
+    });
+    return appUsage;
 });
