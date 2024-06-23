@@ -33,7 +33,7 @@ class _RegisterPageState extends State<RegisterPage> {
     DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime(1950),
       lastDate: DateTime(2101),
     );
     if (picked != null) {
@@ -56,9 +56,7 @@ class _RegisterPageState extends State<RegisterPage> {
         child: PageView(
           controller: _pageController,
           children: [
-            // First page
             buildFirstPage(),
-            // Second page
             buildSecondPage(),
           ],
         ),

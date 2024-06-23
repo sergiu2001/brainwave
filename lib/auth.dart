@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:app_usage/app_usage.dart';
 import 'package:brainwave/login_page.dart';
 import 'package:brainwave/welcome_page.dart';
@@ -64,7 +62,7 @@ class Auth {
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => WelcomePage()),
+        MaterialPageRoute(builder: (context) => const WelcomePage()),
       );
       print('User logged in: ${userCredential.user!.email}');
     } on FirebaseAuthException catch (e) {
@@ -87,7 +85,8 @@ class Auth {
         String appPackageName = app.packageName;
         String appType = app.category.toString();
         String appUsage = info.usage.toString();
-        appList.add([appName, appPackageName, appType, appUsage]);
+        String appDate = info.startDate.toString().split(' ')[0];
+        appList.add([appName, appPackageName, appType, appUsage, appDate]);
       }
       HttpsCallable callable =
           FirebaseFunctions.instance.httpsCallable("sendAppUsage");

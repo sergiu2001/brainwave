@@ -73,7 +73,7 @@ exports.sendAppUsage = functions.https.onCall(async (data, context) => {
     console.log(appList);
     console.log(userRef.path);
         appList.forEach((app) => {
-            userRef.collection("apps").doc(app[1]).set({appName: app[0], appPackageName: app[1], appType: app[2], appUsage: app[3]}, {merge: true});
+            userRef.collection("apps").doc(app[1]).set({appName: app[0], appPackageName: app[1], appType: app[2], appUsage: app[3], appDate: app[4]}, {merge: true});
         });
 });
 

@@ -1,4 +1,5 @@
 import 'package:brainwave/app_usage.dart';
+import 'package:brainwave/report_page.dart';
 import 'package:flutter/material.dart';
 import 'auth.dart';
 
@@ -38,6 +39,14 @@ class _WelcomePageState extends State<WelcomePage> {
                   MaterialPageRoute(builder: (context) => const AppUsagePage()));
             },
             child: const Text('Go to App Usage Page'),
+          ),
+          const SizedBox(height: 50),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const ReportPage()));
+            },
+            child: const Text('Go to Report Page'),
           ),
         ]),
 

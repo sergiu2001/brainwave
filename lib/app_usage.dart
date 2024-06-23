@@ -1,5 +1,4 @@
 import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:app_usage/app_usage.dart';
@@ -36,15 +35,13 @@ class _AppUsagePage extends State<AppUsagePage> {
 
   void sendAppUsage() async {
     try {
-      DateTime endDate = DateTime.now();
+      DateTime endDate = DateTime.now().toUtc();
       DateTime startDate = endDate.subtract(Duration(
           hours: endDate.hour,
           minutes: endDate.minute,
           seconds: endDate.second,
           milliseconds: endDate.millisecond,
-          microseconds: endDate.microsecond));
-      print(startDate);
-      print(endDate);
+          microseconds: endDate.microsecond)).toUtc();
       List<AppUsageInfo> infoList =
           await AppUsage().getAppUsage(startDate, endDate);
 
@@ -56,21 +53,19 @@ class _AppUsagePage extends State<AppUsagePage> {
 
   Future<void> refreshPage() async {
     getUsageStats();
-    await Future.delayed(Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
+    return Scaffold(
         appBar: AppBar(
-          title: const Text('App Usage Example'),
-          backgroundColor: Colors.green,
+          title: const Text('App Usage'),
         ),
         body: RefreshIndicator(
             onRefresh: refreshPage,
           child: ListView.builder(
-            physics: AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: _infos.length,
             itemBuilder: (context, index) {
               return ListTile(
@@ -92,7 +87,6 @@ class _AppUsagePage extends State<AppUsagePage> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }

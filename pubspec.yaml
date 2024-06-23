@@ -43,6 +43,7 @@ dependencies:
   timezone: ^0.9.3
   cloud_firestore: ^4.15.8
   cloud_functions: ^4.7.4
+  multi_select_flutter: ^4.0.0
 
 dev_dependencies:
   flutter_test:
