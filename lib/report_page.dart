@@ -1,8 +1,11 @@
+import 'package:brainwave/welcome_page.dart';
+import 'package:firebase_ml_model_downloader/firebase_ml_model_downloader.dart';
 import 'package:flutter/material.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'auth.dart';
 import 'package:device_apps/device_apps.dart';
 import 'dart:typed_data';
+import 'package:tflite_flutter/tflite_flutter.dart';
 
 class ReportPage extends StatefulWidget {
   const ReportPage({super.key});
@@ -27,17 +30,36 @@ class _ReportPageState extends State<ReportPage> {
     });
   }
 
+  void MLDownload() async {
+    await FirebaseModelDownloader.instance
+        .getModel(
+            "BrainHealth",
+            FirebaseModelDownloadType.localModel,
+            FirebaseModelDownloadConditions(
+              androidChargingRequired: false,
+              androidWifiRequired: false,
+              androidDeviceIdleRequired: false,
+            ))
+        .then((customModel) {
+      final localModelPath = customModel.file;
+      final _interpreter = Interpreter.fromFile(localModelPath);
+    });
+  }
+
   void getUsageStats() async {
     List<dynamic> apps = await _auth.getAppUsage();
     List<AppUsageModel> usageModels = [];
 
     for (var app in apps) {
-      ApplicationWithIcon appIcon = await DeviceApps.getApp(app['appPackageName'], true) as ApplicationWithIcon;
+      ApplicationWithIcon appIcon =
+          await DeviceApps.getApp(app['appPackageName'], true)
+              as ApplicationWithIcon;
       usageModels.add(AppUsageModel(
+        app['appPackageName'],
         app['appName'],
         app['appType'],
         app['appUsage'],
-        appIcon.icon ?? Uint8List(0),  // Ensure appIcon is never null
+        appIcon.icon ?? Uint8List(0),
       ));
     }
 
@@ -55,9 +77,11 @@ class _ReportPageState extends State<ReportPage> {
       'Relaxing',
       'Working',
     ];
-    
-    List<DailyActivityModel> activityModels = activities.map((activity) => DailyActivityModel(activity, false)).toList();
-    
+
+    List<DailyActivityModel> activityModels = activities
+        .map((activity) => DailyActivityModel(activity, false))
+        .toList();
+
     setState(() => dailyActivities = activityModels);
   }
 
@@ -69,9 +93,11 @@ class _ReportPageState extends State<ReportPage> {
       'How anxious did you feel today?',
       'How happy did you feel today?',
     ];
-    
-    List<MentalHealthQuestionModel> questionModels = questions.map((question) => MentalHealthQuestionModel(question, 1)).toList();
-    
+
+    List<MentalHealthQuestionModel> questionModels = questions
+        .map((question) => MentalHealthQuestionModel(question, 1))
+        .toList();
+
     setState(() => mentalHealthQuestions = questionModels);
   }
 
@@ -104,6 +130,50 @@ class _ReportPageState extends State<ReportPage> {
     'Alone Time'
   ];
 
+  void showSelectedData(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Selected Data'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Apps:'),
+                ...appUsages.where((app) => app.attributes.isNotEmpty).map((app) {
+                  return Text(
+                      '${app.appName} (${app.appPackageName}) - ${app.appType}, Usage: ${app.appUsage}, Attributes: ${app.attributes.join(", ")}');
+                }).toList(),
+                SizedBox(height: 10),
+                Text('Daily Activities:'),
+                ...dailyActivities.where((activity) => activity.selected).map((activity) {
+                  return Text(activity.activity);
+                }).toList(),
+                SizedBox(height: 10),
+                Text('Mental Health Questions:'),
+                ...mentalHealthQuestions.map((question) {
+                  return Text('${question.question}: ${question.rating}');
+                }).toList(),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WelcomePage()),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,8 +198,8 @@ class _ReportPageState extends State<ReportPage> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Category: ${app.category}'),
-                        Text('Usage Time: ${app.usageTime}'),
+                        Text('Category: ${app.appType}'),
+                        Text('Usage Time: ${app.appUsage}'),
                         MultiSelectDialogField(
                           items: attributes
                               .map((attribute) =>
@@ -170,7 +240,6 @@ class _ReportPageState extends State<ReportPage> {
               ),
             );
           }).toList(),
-
           ListTile(
             title: Text('Today\'s Activities'),
             subtitle: Text('Select activities you did today.'),
@@ -186,7 +255,6 @@ class _ReportPageState extends State<ReportPage> {
               },
             );
           }).toList(),
-
           ListTile(
             title: Text('Mental Health Questions'),
             subtitle: Text('Rate the following questions from 1 to 5.'),
@@ -211,6 +279,17 @@ class _ReportPageState extends State<ReportPage> {
               ),
             );
           }).toList(),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              // MLDownload();
+              // Navigator.pushReplacement(
+              //   context, MaterialPageRoute(builder: (context) => const WelcomePage()),
+              // );
+              showSelectedData(context);
+            },
+            child: const Text('Submit'),
+          ),
         ],
       ),
     );
@@ -218,13 +297,14 @@ class _ReportPageState extends State<ReportPage> {
 }
 
 class AppUsageModel {
+  String appPackageName;
   String appName;
-  String category;
-  String usageTime;
+  String appType;
+  String appUsage;
   List<String> attributes;
   Uint8List appIcon;
 
-  AppUsageModel(this.appName, this.category, this.usageTime, this.appIcon,
+  AppUsageModel(this.appPackageName, this.appName, this.appType, this.appUsage, this.appIcon,
       {this.attributes = const []});
 }
 
