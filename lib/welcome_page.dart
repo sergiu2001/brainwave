@@ -13,6 +13,14 @@ class WelcomePage extends StatefulWidget {
 class _WelcomePageState extends State<WelcomePage> {
   final Auth _auth = Auth();
 
+  void getReport() async {
+  List<dynamic> reportAndResponse = await _auth.getReport();
+  for (var item in reportAndResponse) {
+    print('Report: ${item['report']}');
+    print('Response: ${item['response']}');
+  }
+}
+
   @override
   Widget build(BuildContext context) {
     String? email = _auth.currentUser!.email ?? "No email";
@@ -47,6 +55,13 @@ class _WelcomePageState extends State<WelcomePage> {
                   MaterialPageRoute(builder: (context) => const ReportPage()));
             },
             child: const Text('Go to Report Page'),
+          ),
+          const SizedBox(height: 50),
+          ElevatedButton(
+            onPressed: () {
+              getReport();
+            },
+            child: const Text('Report'),
           ),
         ]),
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:brainwave/welcome_page.dart';
 import 'package:firebase_ml_model_downloader/firebase_ml_model_downloader.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +21,7 @@ class _ReportPageState extends State<ReportPage> {
   List<DailyActivityModel> dailyActivities = [];
   List<MentalHealthQuestionModel> mentalHealthQuestions = [];
   final Auth _auth = Auth();
+  late Interpreter _interpreter;
 
   @override
   void initState() {
@@ -28,6 +31,39 @@ class _ReportPageState extends State<ReportPage> {
       initializeDailyActivities();
       initializeMentalHealthQuestions();
     });
+  }
+
+    void sendReport(List<String> predictions) async {
+    try {
+      // Format the app usage data
+      List<Map<String, dynamic>> appsData = appUsages.map((app) {
+        return {
+          'appName': app.appName,
+          'appPackageName': app.appPackageName,
+          'appType': app.appType,
+          'appUsage': _parseAppUsage(
+              app.appUsage), // Convert usage to hours as a double
+          'attributes': app.attributes
+        };
+      }).toList();
+
+      // Format the daily activities data
+      List<String> activitiesData = dailyActivities
+          .where((activity) => activity.selected)
+          .map((activity) => activity.activity)
+          .toList();
+
+      // Format the mental health data
+      Map<String, int> mentalHealthData = {};
+      for (var question in mentalHealthQuestions) {
+        mentalHealthData[question.question] = question.rating;
+      }
+
+      // Send the report using the Auth method
+      await _auth.sendReport(appsData, activitiesData, mentalHealthData, predictions);
+    } catch (e) {
+      print('Error sending report: $e');
+    }
   }
 
   void MLDownload() async {
@@ -42,7 +78,10 @@ class _ReportPageState extends State<ReportPage> {
             ))
         .then((customModel) {
       final localModelPath = customModel.file;
-      final _interpreter = Interpreter.fromFile(localModelPath);
+      _interpreter = Interpreter.fromFile(localModelPath);
+
+      // Call _formatData after the interpreter is initialized
+      _formatData();
     });
   }
 
@@ -130,48 +169,216 @@ class _ReportPageState extends State<ReportPage> {
     'Alone Time'
   ];
 
-  void showSelectedData(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Selected Data'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                Text('Apps:'),
-                ...appUsages.where((app) => app.attributes.isNotEmpty).map((app) {
-                  return Text(
-                      '${app.appName} (${app.appPackageName}) - ${app.appType}, Usage: ${app.appUsage}, Attributes: ${app.attributes.join(", ")}');
-                }).toList(),
-                SizedBox(height: 10),
-                Text('Daily Activities:'),
-                ...dailyActivities.where((activity) => activity.selected).map((activity) {
-                  return Text(activity.activity);
-                }).toList(),
-                SizedBox(height: 10),
-                Text('Mental Health Questions:'),
-                ...mentalHealthQuestions.map((question) {
-                  return Text('${question.question}: ${question.rating}');
-                }).toList(),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WelcomePage()),
-                );
-              },
-            ),
-          ],
-        );
-      },
-    );
+  List<String> appTypes = [
+    'communication',
+    'social',
+    'dating',
+    'video players & editors',
+    'productivity',
+    'travel & local',
+    'finance',
+    'business',
+    'photography',
+    'medical',
+    'shopping',
+    'lifestyle',
+    'tools',
+    'health & fitness',
+    'maps & navigation',
+    'food & drink',
+    'weather',
+    'music & audio',
+    'news & magazines',
+    'house & home',
+    'sports',
+    'personalization',
+    'arcade',
+    'casino',
+    'puzzle',
+    'simulation',
+    'trivia',
+    'action',
+    'racing',
+    'adventure',
+    'music',
+    'education',
+    'board',
+    'casual',
+    'word',
+    'books & reference',
+    'strategy',
+    'card',
+    'auto & vehicles',
+    'art & design',
+    'events',
+    'educational',
+    'libraries & demo',
+    'parenting',
+    'beauty',
+    'role playing',
+    'comics',
+    'NA',
+    'no info',
+    'not found in databases',
+    'game',
+    'system',
+    'undefined',
+  ];
+
+
+  double _parseAppUsage(String appUsage) {
+    final parts = appUsage.split(':');
+    final hours = double.parse(parts[0]);
+    final minutes = double.parse(parts[1]);
+    final seconds = double.parse(parts[2]);
+    return hours + (minutes / 60) + (seconds / 3600);
+  }
+
+  void _formatData() {
+    final List<Map<String, dynamic>> appsData = appUsages.map((app) {
+      return {
+        'appPackageName': app.appPackageName,
+        'appType': app.appType,
+        'appUsage': _parseAppUsage(app.appUsage), // Convert usage to double
+        'attributes': app.attributes
+      };
+    }).toList();
+
+    final List<String> activitiesData = dailyActivities
+        .where((activity) => activity.selected)
+        .map((activity) => activity.activity)
+        .toList();
+
+    final Map<String, int> mentalHealthData = {};
+    for (var question in mentalHealthQuestions) {
+      mentalHealthData[question.question] = question.rating;
+    }
+
+    final preprocessedData =
+        preprocessData(appsData, activitiesData, mentalHealthData);
+    _runModel(preprocessedData);
+  }
+
+  List<double> preprocessData(List<Map<String, dynamic>> apps,
+      List<String> activities, Map<String, int> mentalHealth) {
+    List<String> appAttributes = [
+      'Home',
+      'Work',
+      'Public Place',
+      'On the Go',
+      'Happy',
+      'Sad',
+      'Anxious',
+      'Stressed',
+      'Calm',
+      'Bored',
+      'Excited',
+      'Entertainment',
+      'Communication',
+      'Productivity',
+      'Information',
+      'Relaxation',
+      'Habit',
+      'Boredom',
+      'Stress Relief',
+      'Eating',
+      'Exercising',
+      'Commuting',
+      'Working',
+      'Relaxing',
+      'Socializing',
+      'Alone Time'
+    ];
+    List<String> dailyActivities = [
+      'Going for a walk',
+      'Reading a book',
+      'Going out',
+      'Working out',
+      'Meditating',
+      'Socializing',
+      'Relaxing',
+      'Working'
+    ];
+    List<String> mentalHealthQuestions = [
+      'How was your overall mood today?',
+      'How stressed did you feel today?',
+      'How well did you sleep last night?',
+      'How anxious did you feel today?',
+      'How happy did you feel today?'
+    ];
+
+    int maxApps = apps.length;
+    int appFeatureLength = appTypes.length +
+        1 +
+        appAttributes.length; // app type one-hot + app usage + attributes
+    List<double> features = [];
+
+    // Encode app details
+    for (var app in apps) {
+      List<double> appTypeEncoded = List.filled(appTypes.length, 0.0);
+      int appTypeIndex = appTypes.indexOf(app['appType']);
+      if (appTypeIndex >= 0) {
+        appTypeEncoded[appTypeIndex] = 1.0;
+      }
+
+      double appUsage = app['appUsage'];
+      List<double> attributesEncoded = List.filled(appAttributes.length, 0.0);
+      for (var attr in app['attributes']) {
+        int index = appAttributes.indexOf(attr);
+        if (index >= 0) {
+          attributesEncoded[index] = 1.0;
+        }
+      }
+      features.addAll([...appTypeEncoded, appUsage, ...attributesEncoded]);
+    }
+
+    // Pad app features to ensure consistent length
+    while (features.length < maxApps * appFeatureLength) {
+      features.addAll(List.filled(appFeatureLength, 0.0));
+    }
+    if (features.length > maxApps * appFeatureLength) {
+      features = features.sublist(0, maxApps * appFeatureLength);
+    }
+
+    // Encode daily activities
+    List<double> activitiesEncoded = List.filled(dailyActivities.length, 0.0);
+    for (var activity in activities) {
+      int index = dailyActivities.indexOf(activity);
+      if (index >= 0) {
+        activitiesEncoded[index] = 1.0;
+      }
+    }
+    features.addAll(activitiesEncoded);
+
+    // Encode mental health ratings
+    List<double> ratingsEncoded =
+        List.filled(mentalHealthQuestions.length, 0.0);
+    for (var question in mentalHealthQuestions) {
+      int index = mentalHealthQuestions.indexOf(question);
+      if (index >= 0) {
+        ratingsEncoded[index] = mentalHealth[question]?.toDouble() ?? 0.0;
+      }
+    }
+    features.addAll(ratingsEncoded);
+
+    return features;
+  }
+
+  void _runModel(List<double> formattedData) async {
+    var input = [formattedData];
+    var output = List.filled(3, 0)
+        .reshape([3, 1]); // Adjust output size based on your model
+    _interpreter.run(input, output);
+
+    // Interpret and print individual predictions
+    List<String> predictions = output.map((prediction) {
+      double value = prediction[0];
+      String result = value >= 0.5 ? "Positive" : "Negative";
+      print("Prediction: $value ($result)");
+      return result;
+    }).toList();
+
+    sendReport(predictions);
   }
 
   @override
@@ -282,11 +489,8 @@ class _ReportPageState extends State<ReportPage> {
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              // MLDownload();
-              // Navigator.pushReplacement(
-              //   context, MaterialPageRoute(builder: (context) => const WelcomePage()),
-              // );
-              showSelectedData(context);
+              MLDownload();
+              
             },
             child: const Text('Submit'),
           ),
@@ -304,7 +508,8 @@ class AppUsageModel {
   List<String> attributes;
   Uint8List appIcon;
 
-  AppUsageModel(this.appPackageName, this.appName, this.appType, this.appUsage, this.appIcon,
+  AppUsageModel(this.appPackageName, this.appName, this.appType, this.appUsage,
+      this.appIcon,
       {this.attributes = const []});
 }
 

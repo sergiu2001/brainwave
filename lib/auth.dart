@@ -83,7 +83,7 @@ class Auth {
         Application? app = await DeviceApps.getApp(info.packageName);
         String appName = app!.appName;
         String appPackageName = app.packageName;
-        String appType = app.category.toString();
+        String appType = app.category.toString().split('.').last;
         String appUsage = info.usage.toString();
         String appDate = info.startDate.toString().split(' ')[0];
         appList.add([appName, appPackageName, appType, appUsage, appDate]);
@@ -118,4 +118,40 @@ class Auth {
       return [];
     }
   }
+
+  Future<void> sendReport(List<Map<String, dynamic>> appsData,
+      List<String> activitiesData, Map<String, int> mentalHealthData, List<String> predictions) async {
+    try {
+      HttpsCallable callable =
+          FirebaseFunctions.instance.httpsCallable("sendReport");
+      await callable.call({
+        "uid": _auth.currentUser!.uid,
+        "apps": appsData,
+        "dailyActivities": activitiesData,
+        "mentalHealth": mentalHealthData,
+        "predictions": predictions,
+      });
+      print('Report sent successfully');
+    } on FirebaseFunctionsException catch (e) {
+      print('Error sending report: ${e.message}');
+      print('Error code: ${e.code}');
+      print('Error details: ${e.details}');
+    }
+  }
+
+  Future<List<dynamic>> getReport() async {
+  try {
+    HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable("getReport");
+    final results = await callable.call({
+      "uid": _auth.currentUser!.uid,
+    });
+    return results.data['matchedReportsAndResponses'];
+  } on FirebaseFunctionsException catch (e) {
+    print('Error getting report and response: ${e.message}');
+    print('Error code: ${e.code}');
+    print('Error details: ${e.details}');
+    return [];
+  }
+}
 }

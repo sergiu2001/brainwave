@@ -79,7 +79,6 @@ exports.sendAppUsage = functions.https.onCall(async (data, context) => {
 
 exports.getAppUsage = functions.https.onCall(async (data, context) => {
     const userUid = data.uid;
-    const appList = data.appList;
     const db = getFirestore();
     const userRef = db.collection("users").doc(userUid);
 
@@ -89,4 +88,85 @@ exports.getAppUsage = functions.https.onCall(async (data, context) => {
         appUsage.push(doc.data());
     });
     return appUsage;
+});
+
+exports.sendReport = functions.https.onCall(async (data, context) => {
+    const userUid = data.uid;
+    const db = getFirestore();
+    const apps = data.apps;
+    const dailyActivities = data.dailyActivities;
+    const mentalHealth = data.mentalHealth;
+    const predictions = data.predictions;
+
+    const userRef = db.collection("users").doc(userUid);
+
+    console.log(apps);
+    console.log(dailyActivities);
+    console.log(mentalHealth);
+    console.log(predictions);
+    console.log(userRef.path);
+
+    try {
+        // Create a new report document in the reports subcollection
+        const reportRef = userRef.collection("reports").doc();
+        const timestamp = Timestamp.now();
+
+        // Set the report data
+        await reportRef.set({
+            apps: apps,
+            dailyActivities: dailyActivities,
+            mentalHealth: mentalHealth,
+            timestamp: timestamp
+        });
+
+        // Create a new document in the responses subcollection with the same timestamp
+        const responseRef = userRef.collection("responses").doc();
+        await responseRef.set({
+            predictions: predictions,
+            timestamp: timestamp
+        });
+
+        return { result: 'Report and predictions saved successfully' };
+    } catch (error) {
+        console.error("Error saving report: ", error);
+        throw new functions.https.HttpsError('unknown', 'Error saving report', error);
+    }
+});
+
+exports.getReport = functions.https.onCall(async (data, context) => {
+    const userUid = data.uid;
+    const db = getFirestore();
+    const userRef = db.collection("users").doc(userUid);
+
+    try {
+        const reportsSnapshot = await userRef.collection("reports").get();
+        const responsesSnapshot = await userRef.collection("responses").get();
+
+        const reports = [];
+        const responses = [];
+
+        reportsSnapshot.forEach((doc) => {
+            reports.push({ id: doc.id, ...doc.data() });
+        });
+
+        responsesSnapshot.forEach((doc) => {
+            responses.push({ id: doc.id, ...doc.data() });
+        });
+
+        // Find matching reports and responses by timestamp
+        const matchedReportsAndResponses = reports.map((report) => {
+            const matchingResponse = responses.find((response) => {
+                return report.timestamp.isEqual(response.timestamp);
+            });
+            return {
+                report,
+                response: matchingResponse || null,
+            };
+        });
+
+        return { matchedReportsAndResponses };
+    } catch (error) {
+        console.error("Error getting report and response: ", error);
+        throw new functions.https.HttpsError('unknown', 'Error getting report and response', error);
+    }
 });
