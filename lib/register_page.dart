@@ -1,5 +1,7 @@
+import 'package:brainwave/background.dart';
 import 'package:flutter/material.dart';
 import 'auth.dart';
+import 'main.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -28,21 +30,28 @@ class _RegisterPageState extends State<RegisterPage> {
   String _sex = "";
   String _weight = "";
   String _height = "";
+  bool _agreedToTerms = false;
 
-  Future<void> _selectDate() async {
-    DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1950),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null) {
-      setState(() {
-        _dobController.text = picked.toString().split(" ")[0];
-        _dob = _dobController.text;
-      });
-    }
+Future<void> _selectDate() async {
+  DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(1950),
+    lastDate: DateTime(2101),
+    builder: (BuildContext context, Widget? child) {
+      return Theme(
+        data: brainwaveTheme, // Apply the custom theme
+        child: child!,
+      );
+    },
+  );
+  if (picked != null) {
+    setState(() {
+      _dobController.text = picked.toString().split(" ")[0];
+      _dob = _dobController.text;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -50,15 +59,17 @@ class _RegisterPageState extends State<RegisterPage> {
       appBar: AppBar(
         title: const Text('Register'),
       ),
-      body: Form(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.always,
-        child: PageView(
-          controller: _pageController,
-          children: [
-            buildFirstPage(),
-            buildSecondPage(),
-          ],
+      body: StarryBackgroundWidget(
+        child: Form(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.always,
+          child: PageView(
+            controller: _pageController,
+            children: [
+              buildFirstPage(),
+              buildSecondPage(),
+            ],
+          ),
         ),
       ),
     );
@@ -183,7 +194,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue))),
+                      borderSide: BorderSide(color: Color(0xFF6A5ACD)))),
               readOnly: true,
               onTap: () {
                 _selectDate();
@@ -196,6 +207,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             const SizedBox(height: 20),
             DropdownButtonFormField(
+              dropdownColor: Color.fromARGB(235, 58, 58, 91),
               value: null,
               items: const [
                 DropdownMenuItem(value: null, child: Text("Select")),
@@ -257,23 +269,65 @@ class _RegisterPageState extends State<RegisterPage> {
               },
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                _pageController.animateToPage(
-                  0,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.ease,
-                );
-              },
-              child: const Text('Back'),
+            Row(
+              children: [
+                Checkbox(
+                  value: _agreedToTerms,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _agreedToTerms = value ?? false;
+                    });
+                  },
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _agreedToTerms = !_agreedToTerms;
+                      });
+                    },
+                    child: const Text(
+                      'I agree to the terms and conditions and understand the permissions required.',
+                      style: TextStyle(decoration: TextDecoration.underline),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _auth.registerWithEmailAndPassword(_email, _password, _firstName, _lastName, _sex, _dob, _weight, _height, context);
-                }
-              },
-              child: const Text('Register'),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    _pageController.animateToPage(
+                      0,
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.ease,
+                    );
+                  },
+                  child: const Text('Back'),
+                ),
+                ElevatedButton(
+                  onPressed: _agreedToTerms
+                      ? () {
+                          if (_formKey.currentState!.validate()) {
+                            _auth.registerWithEmailAndPassword(
+                                _email,
+                                _password,
+                                _firstName,
+                                _lastName,
+                                _sex,
+                                _dob,
+                                _weight,
+                                _height,
+                                context);
+                          }
+                        }
+                      : null,
+                  child: const Text('Register'),
+                ),
+              ],
             ),
           ],
         ),

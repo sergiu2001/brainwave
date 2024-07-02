@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:app_usage/app_usage.dart';
 import 'package:device_apps/device_apps.dart';
 import 'auth.dart';
+import 'background.dart';
 
 class AppUsagePage extends StatefulWidget {
   const AppUsagePage({super.key});
@@ -33,6 +34,26 @@ class _AppUsagePage extends State<AppUsagePage> {
     setState(() => _infos = apps);
   }
 
+  String formatDuration(String duration) {
+    final parts = duration.split(':');
+    final hours = int.parse(parts[0]);
+    final minutes = int.parse(parts[1]);
+    final seconds = int.parse(parts[2].split('.')[0]);
+
+    final List<String> formattedParts = [];
+    if (hours > 0) {
+      formattedParts.add('$hours h');
+    }
+    if (minutes > 0) {
+      formattedParts.add('$minutes min');
+    }
+    if (seconds > 0 || formattedParts.isEmpty) {
+      formattedParts.add('$seconds sec');
+    }
+
+    return formattedParts.join(' ');
+  }
+
   void sendAppUsage() async {
     try {
       DateTime endDate = DateTime.now().toUtc();
@@ -59,34 +80,35 @@ class _AppUsagePage extends State<AppUsagePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('App Usage'),
-        ),
-        body: RefreshIndicator(
-            onRefresh: refreshPage,
+      appBar: AppBar(
+        title: const Text('App Usage'),
+      ),
+      body: StarryBackgroundWidget(
+        child: RefreshIndicator(
+          onRefresh: refreshPage,
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
             itemCount: _infos.length,
             itemBuilder: (context, index) {
               return ListTile(
-                leading:
-                    Image.memory(Uint8List.fromList(_infos[index]['appIcon'])),
+                leading: Image.memory(Uint8List.fromList(_infos[index]['appIcon'])),
                 title: Text(_infos[index]['appName']),
                 subtitle: Text(_infos[index]['appType']),
-                trailing: Text(_infos[index]['appUsage']),
+                trailing: Text(formatDuration(_infos[index]['appUsage'])),
               );
             },
           ),
         ),
-        floatingActionButton: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            FloatingActionButton(
-              onPressed: sendAppUsage,
-              child: const Icon(Icons.file_upload),
-            ),
-          ],
-        ),
-      );
+      ),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: sendAppUsage,
+            child: const Icon(Icons.file_upload),
+          ),
+        ],
+      ),
+    );
   }
 }

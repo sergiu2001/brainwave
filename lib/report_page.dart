@@ -1,5 +1,4 @@
-import 'dart:math';
-
+import 'package:brainwave/background.dart';
 import 'package:brainwave/welcome_page.dart';
 import 'package:firebase_ml_model_downloader/firebase_ml_model_downloader.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'auth.dart';
 import 'package:device_apps/device_apps.dart';
 import 'dart:typed_data';
 import 'package:tflite_flutter/tflite_flutter.dart';
+import 'main.dart';
 
 class ReportPage extends StatefulWidget {
   const ReportPage({super.key});
@@ -33,7 +33,7 @@ class _ReportPageState extends State<ReportPage> {
     });
   }
 
-    void sendReport(List<String> predictions) async {
+    void sendReport(List<double> predictions) async {
     try {
       // Format the app usage data
       List<Map<String, dynamic>> appsData = appUsages.map((app) {
@@ -83,6 +83,26 @@ class _ReportPageState extends State<ReportPage> {
       // Call _formatData after the interpreter is initialized
       _formatData();
     });
+  }
+
+    String formatDuration(String duration) {
+    final parts = duration.split(':');
+    final hours = int.parse(parts[0]);
+    final minutes = int.parse(parts[1]);
+    final seconds = int.parse(parts[2].split('.')[0]);
+
+    final List<String> formattedParts = [];
+    if (hours > 0) {
+      formattedParts.add('$hours h');
+    }
+    if (minutes > 0) {
+      formattedParts.add('$minutes min');
+    }
+    if (seconds > 0 || formattedParts.isEmpty) {
+      formattedParts.add('$seconds sec');
+    }
+
+    return formattedParts.join(' ');
   }
 
   void getUsageStats() async {
@@ -365,21 +385,19 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   void _runModel(List<double> formattedData) async {
-    var input = [formattedData];
-    var output = List.filled(3, 0)
-        .reshape([3, 1]); // Adjust output size based on your model
-    _interpreter.run(input, output);
+  var input = [formattedData];
+  var output = List.filled(5, 0).reshape([5, 1]); // Adjust output size based on your model
+  _interpreter.run(input, output);
+  print("Output: $output");
+  List<double> predictions = output.map((prediction) {
+    double value = prediction[0] * 100;
+    value = double.parse(value.toStringAsFixed(2));
+    print("Prediction: $value%");
+    return value;
+  }).toList();
 
-    // Interpret and print individual predictions
-    List<String> predictions = output.map((prediction) {
-      double value = prediction[0];
-      String result = value >= 0.5 ? "Positive" : "Negative";
-      print("Prediction: $value ($result)");
-      return result;
-    }).toList();
-
-    sendReport(predictions);
-  }
+  sendReport(predictions);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -387,114 +405,130 @@ class _ReportPageState extends State<ReportPage> {
       appBar: AppBar(
         title: Text('Report Page'),
       ),
-      body: ListView(
-        children: [
-          ListTile(
-            title: Text('Apps Used'),
-            subtitle: Text('Assign attributes to each app used.'),
-          ),
-          ...appUsages.map((app) {
-            return Card(
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: app.appIcon.isNotEmpty
-                        ? Image.memory(app.appIcon)
-                        : Icon(Icons.apps),
-                    title: Text(app.appName),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Category: ${app.appType}'),
-                        Text('Usage Time: ${app.appUsage}'),
-                        MultiSelectDialogField(
-                          items: attributes
-                              .map((attribute) =>
-                                  MultiSelectItem<String>(attribute, attribute))
-                              .toList(),
-                          title: Text('Attributes'),
-                          selectedColor: Colors.blue,
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            border: Border.all(
-                              color: Colors.blue,
-                              width: 2,
+      body: StarryBackgroundWidget(
+        child: ListView(
+          children: [
+            ListTile(
+              title: Text('Apps Used'),
+              subtitle: Text('Assign attributes to each app used.'),
+            ),
+            ...appUsages.map((app) {
+              return Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: app.appIcon.isNotEmpty
+                          ? Image.memory(app.appIcon)
+                          : Icon(Icons.apps),
+                      title: Text(app.appName),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Category: ${app.appType}'),
+                          Text('Usage Time: ${formatDuration(app.appUsage)}'),
+                          MultiSelectDialogField(
+                            items: attributes
+                                .map((attribute) => MultiSelectItem<String>(
+                                    attribute, attribute))
+                                .toList(),
+                            title: Text('Attributes',
+                                style: TextStyle(
+                                    color:
+                                        brainwaveTheme.colorScheme.onSurface)),
+                            selectedColor: brainwaveTheme.colorScheme.primary,
+                            backgroundColor: Color.fromARGB(235, 58, 58, 91),
+                            itemsTextStyle: TextStyle(
+                                color: brainwaveTheme.colorScheme.onSurface),
+                            selectedItemsTextStyle: TextStyle(
+                                color: brainwaveTheme.colorScheme.onPrimary),
+                            decoration: BoxDecoration(
+                              color: brainwaveTheme.colorScheme.primary
+                                  .withOpacity(0.1),
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(10)),
+                              border: Border.all(
+                                color: brainwaveTheme.colorScheme.primary,
+                                width: 2,
+                              ),
                             ),
-                          ),
-                          buttonIcon: Icon(
-                            Icons.arrow_drop_down,
-                            color: Colors.blue,
-                          ),
-                          buttonText: Text(
-                            "Select Attributes",
-                            style: TextStyle(
-                              color: Colors.blue[800],
-                              fontSize: 16,
+                            buttonIcon: Icon(
+                              Icons.arrow_drop_down,
+                              color: brainwaveTheme.colorScheme.primary,
                             ),
+                            buttonText: Text(
+                              "Select Attributes",
+                              style: TextStyle(
+                                color: brainwaveTheme.colorScheme.primary,
+                                fontSize: 16,
+                              ),
+                            ),
+                            onConfirm: (results) {
+                              setState(() {
+                                app.attributes = results;
+                              });
+                            },
+                            initialValue: app.attributes,
                           ),
-                          onConfirm: (results) {
-                            setState(() {
-                              app.attributes = results;
-                            });
-                          },
-                          initialValue: app.attributes,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-          ListTile(
-            title: Text('Today\'s Activities'),
-            subtitle: Text('Select activities you did today.'),
-          ),
-          ...dailyActivities.map((activity) {
-            return CheckboxListTile(
-              title: Text(activity.activity),
-              value: activity.selected,
-              onChanged: (bool? value) {
-                setState(() {
-                  activity.selected = value!;
-                });
-              },
-            );
-          }).toList(),
-          ListTile(
-            title: Text('Mental Health Questions'),
-            subtitle: Text('Rate the following questions from 1 to 5.'),
-          ),
-          ...mentalHealthQuestions.map((question) {
-            return ListTile(
-              title: Text(question.question),
-              trailing: DropdownButton<int>(
-                value: question.rating,
-                onChanged: (int? newValue) {
+                  ],
+                ),
+              );
+            }).toList(),
+            ListTile(
+              title: Text('Today\'s Activities'),
+              subtitle: Text('Select activities you did today.'),
+            ),
+            ...dailyActivities.map((activity) {
+              return CheckboxListTile(
+                title: Text(activity.activity),
+                value: activity.selected,
+                onChanged: (bool? value) {
                   setState(() {
-                    question.rating = newValue!;
+                    activity.selected = value!;
                   });
                 },
-                items: List<int>.generate(5, (index) => index + 1)
-                    .map<DropdownMenuItem<int>>((int value) {
-                  return DropdownMenuItem<int>(
-                    value: value,
-                    child: Text(value.toString()),
-                  );
-                }).toList(),
-              ),
-            );
-          }).toList(),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              MLDownload();
-              
-            },
-            child: const Text('Submit'),
-          ),
-        ],
+              );
+            }).toList(),
+            ListTile(
+              title: Text('Mental Health Questions'),
+              subtitle: Text('Rate the following questions from 1 to 5.'),
+            ),
+            ...mentalHealthQuestions.map((question) {
+              return ListTile(
+                title: Text(question.question),
+                trailing: DropdownButton<int>(
+                  dropdownColor: Color.fromARGB(235, 58, 58, 91),
+                  value: question.rating,
+                  onChanged: (int? newValue) {
+                    setState(() {
+                      question.rating = newValue!;
+                    });
+                  },
+                  items: List<int>.generate(5, (index) => index + 1)
+                      .map<DropdownMenuItem<int>>((int value) {
+                    return DropdownMenuItem<int>(
+                      value: value,
+                      child: Text(value.toString()),
+                    );
+                  }).toList(),
+                ),
+              );
+            }).toList(),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                MLDownload();
+                Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const WelcomePage()));
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
       ),
     );
   }

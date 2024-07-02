@@ -120,7 +120,7 @@ class Auth {
   }
 
   Future<void> sendReport(List<Map<String, dynamic>> appsData,
-      List<String> activitiesData, Map<String, int> mentalHealthData, List<String> predictions) async {
+      List<String> activitiesData, Map<String, int> mentalHealthData, List<double> predictions) async {
     try {
       HttpsCallable callable =
           FirebaseFunctions.instance.httpsCallable("sendReport");
