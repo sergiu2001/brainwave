@@ -22,6 +22,7 @@ class _ReportPageState extends State<ReportPage> {
   List<MentalHealthQuestionModel> mentalHealthQuestions = [];
   final Auth _auth = Auth();
   late Interpreter _interpreter;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -33,34 +34,30 @@ class _ReportPageState extends State<ReportPage> {
     });
   }
 
-    void sendReport(List<double> predictions) async {
+  Future<void> sendReport(List<double> predictions) async {
     try {
-      // Format the app usage data
       List<Map<String, dynamic>> appsData = appUsages.map((app) {
         return {
           'appName': app.appName,
           'appPackageName': app.appPackageName,
           'appType': app.appType,
-          'appUsage': _parseAppUsage(
-              app.appUsage), // Convert usage to hours as a double
+          'appUsage': _parseAppUsage(app.appUsage),
           'attributes': app.attributes
         };
       }).toList();
 
-      // Format the daily activities data
       List<String> activitiesData = dailyActivities
           .where((activity) => activity.selected)
           .map((activity) => activity.activity)
           .toList();
 
-      // Format the mental health data
       Map<String, int> mentalHealthData = {};
       for (var question in mentalHealthQuestions) {
         mentalHealthData[question.question] = question.rating;
       }
 
-      // Send the report using the Auth method
-      await _auth.sendReport(appsData, activitiesData, mentalHealthData, predictions);
+      await _auth.sendReport(
+          appsData, activitiesData, mentalHealthData, predictions);
     } catch (e) {
       print('Error sending report: $e');
     }
@@ -79,13 +76,11 @@ class _ReportPageState extends State<ReportPage> {
         .then((customModel) {
       final localModelPath = customModel.file;
       _interpreter = Interpreter.fromFile(localModelPath);
-
-      // Call _formatData after the interpreter is initialized
       _formatData();
     });
   }
 
-    String formatDuration(String duration) {
+  String formatDuration(String duration) {
     final parts = duration.split(':');
     final hours = int.parse(parts[0]);
     final minutes = int.parse(parts[1]);
@@ -105,25 +100,47 @@ class _ReportPageState extends State<ReportPage> {
     return formattedParts.join(' ');
   }
 
-  void getUsageStats() async {
-    List<dynamic> apps = await _auth.getAppUsage();
-    List<AppUsageModel> usageModels = [];
+  Future<void> getUsageStats() async {
+      setState(() {
+        _isLoading = true;
+      });
 
-    for (var app in apps) {
-      ApplicationWithIcon appIcon =
-          await DeviceApps.getApp(app['appPackageName'], true)
-              as ApplicationWithIcon;
-      usageModels.add(AppUsageModel(
-        app['appPackageName'],
-        app['appName'],
-        app['appType'],
-        app['appUsage'],
-        appIcon.icon ?? Uint8List(0),
-      ));
+      List<dynamic> apps = await _auth.getAppUsage();
+      List<AppUsageModel> usageModels = [];
+      DateTime now = DateTime.now();
+
+      List<dynamic> recentApps = apps.where((app) {
+        DateTime appDate = DateTime.parse(app['appDate']);
+        return now.difference(appDate).inHours <= 64;
+      }).toList();
+
+      recentApps.sort((a, b) => Duration(
+              hours: int.parse(b['appUsage'].split(':')[0]),
+              minutes: int.parse(b['appUsage'].split(':')[1]),
+              seconds: int.parse(b['appUsage'].split(':')[2].split('.')[0]))
+          .compareTo(Duration(
+              hours: int.parse(a['appUsage'].split(':')[0]),
+              minutes: int.parse(a['appUsage'].split(':')[1]),
+              seconds: int.parse(a['appUsage'].split(':')[2].split('.')[0]))));
+
+      for (var app in recentApps.take(20)) {
+        ApplicationWithIcon appIcon =
+            await DeviceApps.getApp(app['appPackageName'], true)
+                as ApplicationWithIcon;
+        usageModels.add(AppUsageModel(
+          app['appPackageName'],
+          app['appName'],
+          app['appType'],
+          app['appUsage'],
+          appIcon.icon ?? Uint8List(0),
+        ));
+      }
+
+      setState(() {
+        appUsages = usageModels;
+        _isLoading = false;
+      });
     }
-
-    setState(() => appUsages = usageModels);
-  }
 
   void initializeDailyActivities() {
     List<String> activities = [
@@ -241,10 +258,8 @@ class _ReportPageState extends State<ReportPage> {
     'no info',
     'not found in databases',
     'game',
-    'system',
     'undefined',
   ];
-
 
   double _parseAppUsage(String appUsage) {
     final parts = appUsage.split(':');
@@ -259,7 +274,7 @@ class _ReportPageState extends State<ReportPage> {
       return {
         'appPackageName': app.appPackageName,
         'appType': app.appType,
-        'appUsage': _parseAppUsage(app.appUsage), // Convert usage to double
+        'appUsage': _parseAppUsage(app.appUsage),
         'attributes': app.attributes
       };
     }).toList();
@@ -327,13 +342,10 @@ class _ReportPageState extends State<ReportPage> {
       'How happy did you feel today?'
     ];
 
-    int maxApps = apps.length;
-    int appFeatureLength = appTypes.length +
-        1 +
-        appAttributes.length; // app type one-hot + app usage + attributes
+    int maxApps = 20;
+    int appFeatureLength = appTypes.length + 1 + appAttributes.length;
     List<double> features = [];
 
-    // Encode app details
     for (var app in apps) {
       List<double> appTypeEncoded = List.filled(appTypes.length, 0.0);
       int appTypeIndex = appTypes.indexOf(app['appType']);
@@ -352,7 +364,6 @@ class _ReportPageState extends State<ReportPage> {
       features.addAll([...appTypeEncoded, appUsage, ...attributesEncoded]);
     }
 
-    // Pad app features to ensure consistent length
     while (features.length < maxApps * appFeatureLength) {
       features.addAll(List.filled(appFeatureLength, 0.0));
     }
@@ -360,7 +371,6 @@ class _ReportPageState extends State<ReportPage> {
       features = features.sublist(0, maxApps * appFeatureLength);
     }
 
-    // Encode daily activities
     List<double> activitiesEncoded = List.filled(dailyActivities.length, 0.0);
     for (var activity in activities) {
       int index = dailyActivities.indexOf(activity);
@@ -370,7 +380,6 @@ class _ReportPageState extends State<ReportPage> {
     }
     features.addAll(activitiesEncoded);
 
-    // Encode mental health ratings
     List<double> ratingsEncoded =
         List.filled(mentalHealthQuestions.length, 0.0);
     for (var question in mentalHealthQuestions) {
@@ -385,150 +394,158 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   void _runModel(List<double> formattedData) async {
-  var input = [formattedData];
-  var output = List.filled(5, 0).reshape([5, 1]); // Adjust output size based on your model
-  _interpreter.run(input, output);
-  print("Output: $output");
-  List<double> predictions = output.map((prediction) {
-    double value = prediction[0] * 100;
-    value = double.parse(value.toStringAsFixed(2));
-    print("Prediction: $value%");
-    return value;
-  }).toList();
+    var input = [formattedData];
+    var output = List.filled(4, 0).reshape([4, 1]);
+    _interpreter.run(input, output);
+    print("Output: $output");
+    List<double> predictions = output.map((prediction) {
+      double value = prediction[0] * 100;
+      value = double.parse(value.toStringAsFixed(2));
+      print("Prediction: $value%");
+      return value;
+    }).toList();
 
-  sendReport(predictions);
+    sendReport(predictions);
 }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Report Page'),
+        title: const Text('Report Page'),
       ),
       body: StarryBackgroundWidget(
-        child: ListView(
-          children: [
-            ListTile(
-              title: Text('Apps Used'),
-              subtitle: Text('Assign attributes to each app used.'),
-            ),
-            ...appUsages.map((app) {
-              return Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: app.appIcon.isNotEmpty
-                          ? Image.memory(app.appIcon)
-                          : Icon(Icons.apps),
-                      title: Text(app.appName),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                children: [
+                  const ListTile(
+                    title: Text('Apps Used'),
+                    subtitle: Text('Assign attributes to each app used.'),
+                  ),
+                  ...appUsages.map((app) {
+                    return Card(
+                      child: Column(
                         children: [
-                          Text('Category: ${app.appType}'),
-                          Text('Usage Time: ${formatDuration(app.appUsage)}'),
-                          MultiSelectDialogField(
-                            items: attributes
-                                .map((attribute) => MultiSelectItem<String>(
-                                    attribute, attribute))
-                                .toList(),
-                            title: Text('Attributes',
-                                style: TextStyle(
-                                    color:
-                                        brainwaveTheme.colorScheme.onSurface)),
-                            selectedColor: brainwaveTheme.colorScheme.primary,
-                            backgroundColor: Color.fromARGB(235, 58, 58, 91),
-                            itemsTextStyle: TextStyle(
-                                color: brainwaveTheme.colorScheme.onSurface),
-                            selectedItemsTextStyle: TextStyle(
-                                color: brainwaveTheme.colorScheme.onPrimary),
-                            decoration: BoxDecoration(
-                              color: brainwaveTheme.colorScheme.primary
-                                  .withOpacity(0.1),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(10)),
-                              border: Border.all(
-                                color: brainwaveTheme.colorScheme.primary,
-                                width: 2,
-                              ),
+                          ListTile(
+                            leading: app.appIcon.isNotEmpty
+                                ? Image.memory(app.appIcon)
+                                : const Icon(Icons.apps),
+                            title: Text(app.appName),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Category: ${app.appType}'),
+                                Text(
+                                    'Usage Time: ${formatDuration(app.appUsage)}'),
+                                MultiSelectDialogField(
+                                  items: attributes
+                                      .map((attribute) =>
+                                          MultiSelectItem<String>(
+                                              attribute, attribute))
+                                      .toList(),
+                                  title: Text('Attributes',
+                                      style: TextStyle(
+                                          color: brainwaveTheme
+                                              .colorScheme.onSurface)),
+                                  selectedColor:
+                                      brainwaveTheme.colorScheme.primary,
+                                  backgroundColor:
+                                      const Color.fromARGB(235, 58, 58, 91),
+                                  itemsTextStyle: TextStyle(
+                                      color:
+                                          brainwaveTheme.colorScheme.onSurface),
+                                  selectedItemsTextStyle: TextStyle(
+                                      color:
+                                          brainwaveTheme.colorScheme.onPrimary),
+                                  decoration: BoxDecoration(
+                                    color: brainwaveTheme.colorScheme.primary
+                                        .withOpacity(0.1),
+                                    borderRadius: const BorderRadius.all(
+                                        Radius.circular(10)),
+                                    border: Border.all(
+                                      color: brainwaveTheme.colorScheme.primary,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  buttonIcon: Icon(
+                                    Icons.arrow_drop_down,
+                                    color: brainwaveTheme.colorScheme.primary,
+                                  ),
+                                  buttonText: Text(
+                                    "Select Attributes",
+                                    style: TextStyle(
+                                      color: brainwaveTheme.colorScheme.primary,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  onConfirm: (results) {
+                                    setState(() {
+                                      app.attributes = results;
+                                    });
+                                  },
+                                  initialValue: app.attributes,
+                                ),
+                              ],
                             ),
-                            buttonIcon: Icon(
-                              Icons.arrow_drop_down,
-                              color: brainwaveTheme.colorScheme.primary,
-                            ),
-                            buttonText: Text(
-                              "Select Attributes",
-                              style: TextStyle(
-                                color: brainwaveTheme.colorScheme.primary,
-                                fontSize: 16,
-                              ),
-                            ),
-                            onConfirm: (results) {
-                              setState(() {
-                                app.attributes = results;
-                              });
-                            },
-                            initialValue: app.attributes,
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-            ListTile(
-              title: Text('Today\'s Activities'),
-              subtitle: Text('Select activities you did today.'),
-            ),
-            ...dailyActivities.map((activity) {
-              return CheckboxListTile(
-                title: Text(activity.activity),
-                value: activity.selected,
-                onChanged: (bool? value) {
-                  setState(() {
-                    activity.selected = value!;
-                  });
-                },
-              );
-            }).toList(),
-            ListTile(
-              title: Text('Mental Health Questions'),
-              subtitle: Text('Rate the following questions from 1 to 5.'),
-            ),
-            ...mentalHealthQuestions.map((question) {
-              return ListTile(
-                title: Text(question.question),
-                trailing: DropdownButton<int>(
-                  dropdownColor: Color.fromARGB(235, 58, 58, 91),
-                  value: question.rating,
-                  onChanged: (int? newValue) {
-                    setState(() {
-                      question.rating = newValue!;
-                    });
-                  },
-                  items: List<int>.generate(5, (index) => index + 1)
-                      .map<DropdownMenuItem<int>>((int value) {
-                    return DropdownMenuItem<int>(
-                      value: value,
-                      child: Text(value.toString()),
                     );
                   }).toList(),
-                ),
-              );
-            }).toList(),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                MLDownload();
-                Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const WelcomePage()));
-              },
-              child: const Text('Submit'),
-            ),
-          ],
-        ),
+                  const ListTile(
+                    title: Text('Today\'s Activities'),
+                    subtitle: Text('Select activities you did today.'),
+                  ),
+                  ...dailyActivities.map((activity) {
+                    return CheckboxListTile(
+                      title: Text(activity.activity),
+                      value: activity.selected,
+                      onChanged: (bool? value) {
+                        setState(() {
+                          activity.selected = value!;
+                        });
+                      },
+                    );
+                  }).toList(),
+                  const ListTile(
+                    title: Text('Mental Health Questions'),
+                    subtitle: Text('Rate the following questions from 1 to 5.'),
+                  ),
+                  ...mentalHealthQuestions.map((question) {
+                    return ListTile(
+                      title: Text(question.question),
+                      trailing: DropdownButton<int>(
+                        dropdownColor: const Color.fromARGB(235, 58, 58, 91),
+                        value: question.rating,
+                        onChanged: (int? newValue) {
+                          setState(() {
+                            question.rating = newValue!;
+                          });
+                        },
+                        items: List<int>.generate(5, (index) => index + 1)
+                            .map<DropdownMenuItem<int>>((int value) {
+                          return DropdownMenuItem<int>(
+                            value: value,
+                            child: Text(value.toString()),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  }).toList(),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      MLDownload();
+                      Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const WelcomePage()));
+                    },
+                    child: const Text('Submit'),
+                  ),
+                ],
+              ),
       ),
     );
   }

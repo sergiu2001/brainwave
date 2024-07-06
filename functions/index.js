@@ -64,6 +64,24 @@ exports.deleteAccount = functions.auth.user().onDelete((user) => {
     return userDoc.delete();
 });
 
+exports.getUser = functions.https.onCall(async (data, context) => {
+    const userUid = data.uid;
+    
+    const db = getFirestore();
+    const userRef = db.collection("users").doc(userUid);
+
+    try {
+        const userDoc = await userRef.get();
+        if (!userDoc.exists) {
+            throw new functions.https.HttpsError('not-found', 'User profile not found');
+        }
+        const userProfile = userDoc.data();
+        return userProfile;
+    } catch (error) {
+        throw new functions.https.HttpsError('internal', 'Unable to retrieve user profile', error);
+    }
+});
+
 exports.sendAppUsage = functions.https.onCall(async (data, context) => {
     const userUid = data.uid;
     const appList = data.appList;
@@ -107,11 +125,9 @@ exports.sendReport = functions.https.onCall(async (data, context) => {
     console.log(userRef.path);
 
     try {
-        // Create a new report document in the reports subcollection
         const reportRef = userRef.collection("reports").doc();
         const timestamp = Timestamp.now();
 
-        // Set the report data
         await reportRef.set({
             apps: apps,
             dailyActivities: dailyActivities,
@@ -119,7 +135,6 @@ exports.sendReport = functions.https.onCall(async (data, context) => {
             timestamp: timestamp
         });
 
-        // Create a new document in the responses subcollection with the same timestamp
         const responseRef = userRef.collection("responses").doc();
         await responseRef.set({
             predictions: predictions,
@@ -153,7 +168,6 @@ exports.getReport = functions.https.onCall(async (data, context) => {
             responses.push({ id: doc.id, ...doc.data() });
         });
 
-        // Find matching reports and responses by timestamp
         const matchedReportsAndResponses = reports.map((report) => {
             const matchingResponse = responses.find((response) => {
                 return report.timestamp.isEqual(response.timestamp);

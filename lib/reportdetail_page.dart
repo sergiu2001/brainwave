@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'main.dart';
 import 'background.dart';
 
 class ReportDetailPage extends StatelessWidget {
@@ -12,33 +11,36 @@ class ReportDetailPage extends StatelessWidget {
   String formatTimestamp(dynamic timestamp) {
     final seconds = timestamp['_seconds'] as int;
     final nanos = timestamp['_nanoseconds'] as int;
-    final dateTime = DateTime.fromMillisecondsSinceEpoch(seconds * 1000 + nanos ~/ 1000000);
+    final dateTime =
+        DateTime.fromMillisecondsSinceEpoch(seconds * 1000 + nanos ~/ 1000000);
     return DateFormat('yyyy-MM-dd HH:mm:ss').format(dateTime);
   }
 
   String formatDuration(double hours) {
-  int h = hours.floor();
-  int m = ((hours - h) * 60).floor();
-  int s = (((hours - h) * 60 - m) * 60).round();
+    int h = hours.floor();
+    int m = ((hours - h) * 60).floor();
+    int s = (((hours - h) * 60 - m) * 60).round();
 
-  List<String> parts = [];
-  if (h > 0) parts.add('${h} h');
-  if (m > 0) parts.add('${m} min');
-  if (s > 0) parts.add('${s} sec');
+    List<String> parts = [];
+    if (h > 0) parts.add('$h h');
+    if (m > 0) parts.add('$m min');
+    if (s > 0) parts.add('$s sec');
 
-  return parts.join(', ');
-}
+    return parts.join(', ');
+  }
 
   @override
   Widget build(BuildContext context) {
     var report = item['report'];
     var response = item['response'] != null
-        ? (item['response']['predictions'].reduce((a, b) => a + b) / item['response']['predictions'].length).toStringAsFixed(2)
+        ? (item['response']['predictions'].reduce((a, b) => a + b) /
+                item['response']['predictions'].length)
+            .toStringAsFixed(2)
         : 'No Response';
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Report details'),
+        title: const Text('Report details'),
       ),
       body: StarryBackgroundWidget(
         child: Padding(
@@ -47,11 +49,16 @@ class ReportDetailPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Report Timestamp: ${formatTimestamp(report['timestamp'])}'),
-                SizedBox(height: 16),
-                Text('Report Details:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
-                Text('Apps:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                    'Report Timestamp: ${formatTimestamp(report['timestamp'])}'),
+                const SizedBox(height: 16),
+                const Text('Report Details:',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text('Apps:',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ...report['apps'].map<Widget>((app) {
                   return Card(
                     elevation: 2,
@@ -63,12 +70,16 @@ class ReportDetailPage extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Image.memory(Uint8List.fromList(app['appIcon']), width: 40, height: 40),
-                              SizedBox(width: 8),
-                              Text('App Name: ${app['appName']}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              Image.memory(Uint8List.fromList(app['appIcon']),
+                                  width: 40, height: 40),
+                              const SizedBox(width: 8),
+                              Text('App Name: ${app['appName']}',
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)),
                             ],
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text('Category: ${app['appType']}'),
                           Text('Usage: ${formatDuration(app['appUsage'])}'),
                           Text('Attributes: ${app['attributes'].join(', ')}'),
@@ -77,23 +88,30 @@ class ReportDetailPage extends StatelessWidget {
                     ),
                   );
                 }).toList(),
-                SizedBox(height: 16),
-                Text('Daily Activities:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                const Text('Daily Activities:',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 Text(report['dailyActivities'].join(', ')),
-                SizedBox(height: 16),
-                Text('Mental Health:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                const Text('Mental Health:',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ...report['mentalHealth'].entries.map<Widget>((entry) {
                   return Card(
                     elevation: 2,
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: Text('${entry.key}: ${entry.value}', style: TextStyle(fontSize: 14)),
+                      child: Text('${entry.key}: ${entry.value}',
+                          style: const TextStyle(fontSize: 14)),
                     ),
                   );
                 }).toList(),
-                SizedBox(height: 16),
-                Text('Overall mental health estimation: $response', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Text('Overall mental health estimation: $response',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
               ],
             ),
           ),

@@ -1,3 +1,4 @@
+import 'package:brainwave/profile_page.dart';
 import 'package:flutter/material.dart';
 import 'auth.dart';
 import 'background.dart';
@@ -22,6 +23,7 @@ class _WelcomePageState extends State<WelcomePage> {
 
   @override
   void initState() {
+    _isExpanded = false;
     super.initState();
     getReport();
   }
@@ -31,7 +33,9 @@ class _WelcomePageState extends State<WelcomePage> {
     for (var item in reportAndResponse) {
       List<dynamic> apps = item['report']['apps'];
       for (var app in apps) {
-        ApplicationWithIcon? appIcon = await DeviceApps.getApp(app['appPackageName'], true) as ApplicationWithIcon?;
+        ApplicationWithIcon? appIcon =
+            await DeviceApps.getApp(app['appPackageName'], true)
+                as ApplicationWithIcon?;
         app['appIcon'] = appIcon?.icon;
       }
     }
@@ -41,7 +45,7 @@ class _WelcomePageState extends State<WelcomePage> {
     });
   }
 
-    Future<void> refreshPage() async {
+  Future<void> refreshPage() async {
     getReport();
     await Future.delayed(const Duration(seconds: 1));
   }
@@ -62,14 +66,16 @@ class _WelcomePageState extends State<WelcomePage> {
   String formatTimestamp(dynamic timestamp) {
     final seconds = timestamp['_seconds'] as int;
     final nanos = timestamp['_nanoseconds'] as int;
-    final dateTime = DateTime.fromMillisecondsSinceEpoch(seconds * 1000 + nanos ~/ 1000000);
+    final dateTime =
+        DateTime.fromMillisecondsSinceEpoch(seconds * 1000 + nanos ~/ 1000000);
     return dateTime.toString();
   }
+  
 
-    @override
+  @override
   Widget build(BuildContext context) {
     String? email = _auth.currentUser?.email ?? "No email";
-    String? profileImageUrl = 'https://picsum.photos/50';
+    const String profileImageUrl = 'https://picsum.photos/200';
 
     return Scaffold(
       body: Stack(
@@ -82,7 +88,7 @@ class _WelcomePageState extends State<WelcomePage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     _isLoading
-                        ? CircularProgressIndicator()
+                        ? const CircularProgressIndicator()
                         : Expanded(
                             child: RefreshIndicator(
                               onRefresh: refreshPage,
@@ -90,26 +96,41 @@ class _WelcomePageState extends State<WelcomePage> {
                                 itemCount: _reportAndResponse.length,
                                 itemBuilder: (context, index) {
                                   var item = _reportAndResponse[index];
-                                  var timestamp = formatTimestamp(item['report']['timestamp']);
-                                  var response = item['response'] != null ? (item['response']['predictions'].reduce((a, b) => a + b) / item['response']['predictions'].length).toStringAsFixed(2) : 'No Response';
+                                  var timestamp = formatTimestamp(
+                                      item['report']['timestamp']);
+                                  var response = item['response'] != null
+                                      ? (item['response']['predictions']
+                                                  .reduce((a, b) => a + b) /
+                                              item['response']['predictions']
+                                                  .length)
+                                          .toStringAsFixed(2)
+                                      : 'No Response';
                                   return Card(
-                                    margin: const EdgeInsets.symmetric(vertical: 8),
+                                    margin:
+                                        const EdgeInsets.symmetric(vertical: 8),
                                     child: ListTile(
-                                      contentPadding: const EdgeInsets.all(16.0),
-                                      leading: Icon(Icons.access_time, size: 40, color: brainwaveTheme.appBarTheme.backgroundColor),
+                                      contentPadding:
+                                          const EdgeInsets.all(16.0),
+                                      leading: Icon(Icons.insert_chart_outlined_rounded,
+                                          size: 40,
+                                          color: brainwaveTheme
+                                              .appBarTheme.backgroundColor),
                                       title: Text(
-                                        '$timestamp',
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                        timestamp,
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold),
                                       ),
                                       subtitle: Text(
                                         '$response%',
-                                        style: TextStyle(fontSize: 16),
+                                        style: const TextStyle(fontSize: 16),
                                       ),
                                       onTap: () {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => ReportDetailPage(item: item),
+                                            builder: (context) =>
+                                                ReportDetailPage(item: item),
                                           ),
                                         );
                                       },
@@ -138,13 +159,14 @@ class _WelcomePageState extends State<WelcomePage> {
                       });
                     },
                     child: Container(
-                      color: brainwaveTheme.appBarTheme.backgroundColor, // Use theme color
+                      color: brainwaveTheme.appBarTheme.backgroundColor,
                       padding: EdgeInsets.only(
                           top: MediaQuery.of(context).padding.top, bottom: 10),
                       child: Row(
                         children: [
                           const SizedBox(width: 16),
-                          CircleAvatar(
+                          const CircleAvatar(
+                            radius: 25,
                             backgroundImage: NetworkImage(profileImageUrl),
                           ),
                           const SizedBox(width: 10),
@@ -167,21 +189,44 @@ class _WelcomePageState extends State<WelcomePage> {
                   AnimatedCrossFade(
                     firstChild: Container(),
                     secondChild: Container(
-                      color: brainwaveTheme.appBarTheme.backgroundColor, // Match the AppBar color
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      color: brainwaveTheme.appBarTheme.backgroundColor,
+                      padding: const EdgeInsets.symmetric(vertical: 1),
                       child: Column(
                         children: [
                           SizedBox(
                             width: double.infinity,
+                            height: 60,
                             child: ElevatedButton(
-                              onPressed: () {},
-                              child: const Text('Profile'),
+                              style: ElevatedButton.styleFrom(
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(0),
+                                  ),
+                                ),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ProfilePage(userProfile: profileImageUrl,)),
+                                );
+                              },
+                              child: const Text('Profile',
+                                  style: TextStyle(fontSize: 16)),
                             ),
                           ),
-                          const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
+                            height: 60,
                             child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(0),
+                                  ),
+                                ),
+                              ),
                               onPressed: () {
                                 Navigator.push(
                                   context,
@@ -190,7 +235,8 @@ class _WelcomePageState extends State<WelcomePage> {
                                           const AppUsagePage()),
                                 );
                               },
-                              child: const Text('List of apps'),
+                              child: const Text('List of apps',
+                                  style: TextStyle(fontSize: 16)),
                             ),
                           ),
                         ],

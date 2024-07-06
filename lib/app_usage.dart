@@ -15,6 +15,7 @@ class AppUsagePage extends StatefulWidget {
 
 class _AppUsagePage extends State<AppUsagePage> {
   List<dynamic> _infos = [];
+  bool _isLoading = true; // Loading state variable
   final Auth _auth = Auth();
 
   @override
@@ -25,13 +26,23 @@ class _AppUsagePage extends State<AppUsagePage> {
     });
   }
 
-  void getUsageStats() async {
+  Future<void> getUsageStats() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     List<dynamic> apps = await _auth.getAppUsage();
     for (var app in apps) {
-      ApplicationWithIcon appIcon = await DeviceApps.getApp(app['appPackageName'], true) as ApplicationWithIcon;
+      ApplicationWithIcon appIcon =
+          await DeviceApps.getApp(app['appPackageName'], true)
+              as ApplicationWithIcon;
       app['appIcon'] = appIcon.icon;
     }
-    setState(() => _infos = apps);
+
+    setState(() {
+      _infos = apps;
+      _isLoading = false; // Update loading state
+    });
   }
 
   String formatDuration(String duration) {
@@ -51,18 +62,20 @@ class _AppUsagePage extends State<AppUsagePage> {
       formattedParts.add('$seconds sec');
     }
 
-    return formattedParts.join(' ');
+    return formattedParts.join(', ');
   }
 
   void sendAppUsage() async {
     try {
       DateTime endDate = DateTime.now().toUtc();
-      DateTime startDate = endDate.subtract(Duration(
-          hours: endDate.hour,
-          minutes: endDate.minute,
-          seconds: endDate.second,
-          milliseconds: endDate.millisecond,
-          microseconds: endDate.microsecond)).toUtc();
+      DateTime startDate = endDate
+          .subtract(Duration(
+              hours: endDate.hour,
+              minutes: endDate.minute,
+              seconds: endDate.second,
+              milliseconds: endDate.millisecond,
+              microseconds: endDate.microsecond))
+          .toUtc();
       List<AppUsageInfo> infoList =
           await AppUsage().getAppUsage(startDate, endDate);
 
@@ -73,7 +86,7 @@ class _AppUsagePage extends State<AppUsagePage> {
   }
 
   Future<void> refreshPage() async {
-    getUsageStats();
+    await getUsageStats();
     await Future.delayed(const Duration(seconds: 1));
   }
 
@@ -84,30 +97,27 @@ class _AppUsagePage extends State<AppUsagePage> {
         title: const Text('App Usage'),
       ),
       body: StarryBackgroundWidget(
-        child: RefreshIndicator(
-          onRefresh: refreshPage,
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: _infos.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                leading: Image.memory(Uint8List.fromList(_infos[index]['appIcon'])),
-                title: Text(_infos[index]['appName']),
-                subtitle: Text(_infos[index]['appType']),
-                trailing: Text(formatDuration(_infos[index]['appUsage'])),
-              );
-            },
-          ),
-        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator()) // Show progress indicator
+            : RefreshIndicator(
+                onRefresh: refreshPage,
+                child: ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  itemCount: _infos.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      leading: Image.memory(Uint8List.fromList(_infos[index]['appIcon'])),
+                      title: Text(_infos[index]['appName']),
+                      subtitle: Text(_infos[index]['appType']),
+                      trailing: Text(formatDuration(_infos[index]['appUsage'])),
+                    );
+                  },
+                ),
+              ),
       ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton(
-            onPressed: sendAppUsage,
-            child: const Icon(Icons.file_upload),
-          ),
-        ],
+      floatingActionButton: FloatingActionButton(
+        onPressed: sendAppUsage,
+        child: const Icon(Icons.file_upload),
       ),
     );
   }

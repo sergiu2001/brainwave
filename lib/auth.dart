@@ -27,6 +27,7 @@ class Auth {
         email: email,
         password: password,
       );
+      await Future.delayed(const Duration(seconds: 3));
       try {
         HttpsCallable callable =
             FirebaseFunctions.instance.httpsCallable("updateAccount");
@@ -76,6 +77,22 @@ class Auth {
         context, MaterialPageRoute(builder: (context) => const LoginPage()));
   }
 
+  Future<Map<String, dynamic>> getUser() async {
+    try {
+      HttpsCallable callable = FirebaseFunctions.instance.httpsCallable("getUser");
+      final results = await callable.call({
+        "uid": _auth.currentUser!.uid,
+      });
+      return results.data as Map<String, dynamic>;
+    } on FirebaseFunctionsException catch (e) {
+      print(e);
+      print(e.code);
+      print(e.message);
+      print(e.details);
+      return {};
+    }
+  }
+
   Future<void> sendAppUsage(List<AppUsageInfo> infos) async {
     try {
       List<List<String>> appList = [];
@@ -119,8 +136,11 @@ class Auth {
     }
   }
 
-  Future<void> sendReport(List<Map<String, dynamic>> appsData,
-      List<String> activitiesData, Map<String, int> mentalHealthData, List<double> predictions) async {
+  Future<void> sendReport(
+      List<Map<String, dynamic>> appsData,
+      List<String> activitiesData,
+      Map<String, int> mentalHealthData,
+      List<double> predictions) async {
     try {
       HttpsCallable callable =
           FirebaseFunctions.instance.httpsCallable("sendReport");
@@ -140,18 +160,18 @@ class Auth {
   }
 
   Future<List<dynamic>> getReport() async {
-  try {
-    HttpsCallable callable =
-        FirebaseFunctions.instance.httpsCallable("getReport");
-    final results = await callable.call({
-      "uid": _auth.currentUser!.uid,
-    });
-    return results.data['matchedReportsAndResponses'];
-  } on FirebaseFunctionsException catch (e) {
-    print('Error getting report and response: ${e.message}');
-    print('Error code: ${e.code}');
-    print('Error details: ${e.details}');
-    return [];
+    try {
+      HttpsCallable callable =
+          FirebaseFunctions.instance.httpsCallable("getReport");
+      final results = await callable.call({
+        "uid": _auth.currentUser!.uid,
+      });
+      return results.data['matchedReportsAndResponses'];
+    } on FirebaseFunctionsException catch (e) {
+      print('Error getting report and response: ${e.message}');
+      print('Error code: ${e.code}');
+      print('Error details: ${e.details}');
+      return [];
+    }
   }
-}
 }

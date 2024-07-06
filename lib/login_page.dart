@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login'),
+        title: const Text('Brainwave'),
       ),
       body: StarryBackgroundWidget(
         child: Center(
@@ -77,7 +77,8 @@ class _LoginPageState extends State<LoginPage> {
                   ElevatedButton(
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
-                        _auth.signInWithEmailAndPassword(_email, _password, context);
+                        _auth.signInWithEmailAndPassword(
+                            _email, _password, context);
                       }
                     },
                     child: const Text('Login'),
@@ -86,10 +87,12 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const RegisterPage()),
+                        MaterialPageRoute(
+                            builder: (context) => const RegisterPage()),
                       );
                     },
-                    child: const Text("Don't have an account? Create one here."),
+                    child:
+                        const Text("Don't have an account? Create one here."),
                   ),
                 ],
               ),

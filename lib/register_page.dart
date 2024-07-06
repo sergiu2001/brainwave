@@ -32,26 +32,26 @@ class _RegisterPageState extends State<RegisterPage> {
   String _height = "";
   bool _agreedToTerms = false;
 
-Future<void> _selectDate() async {
-  DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: DateTime.now(),
-    firstDate: DateTime(1950),
-    lastDate: DateTime(2101),
-    builder: (BuildContext context, Widget? child) {
-      return Theme(
-        data: brainwaveTheme, // Apply the custom theme
-        child: child!,
-      );
-    },
-  );
-  if (picked != null) {
-    setState(() {
-      _dobController.text = picked.toString().split(" ")[0];
-      _dob = _dobController.text;
-    });
+  Future<void> _selectDate() async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1950),
+      lastDate: DateTime(2101),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: brainwaveTheme,
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _dobController.text = picked.toString().split(" ")[0];
+        _dob = _dobController.text;
+      });
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
